@@ -1,5 +1,4 @@
 name: CI/CD for File Extraction and Release
-
 on:
   push:
     branches:
