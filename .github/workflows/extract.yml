@@ -45,7 +45,7 @@ jobs:
       - name: Mount ISO and Copy en.pak
         id: extract
         run: |
-          mkdir -p /mnt/iso extracted
+          mkdir -p /tmp/iso extracted
           if [ -z "$ISO_PATH" ]; then
             echo "❌ No ISO file found."
             echo "file_exists=false" >> $GITHUB_OUTPUT
@@ -53,10 +53,10 @@ jobs:
           fi
 
           echo "🔗 Mounting ISO: $ISO_PATH"
-          sudo mount -o loop "$ISO_PATH" /mnt/iso
+          sudo mount -o loop "$ISO_PATH" /tmp/iso
 
           echo "🔍 Searching for en.pak..."
-          FOUND_FILE=$(find /mnt/iso -type f -name "$TARGET_PATH" | head -n 1 || true)
+          FOUND_FILE=$(find /tmp/iso -type f -name "$TARGET_PATH" | head -n 1 || true)
           if [[ -f "$FOUND_FILE" ]]; then
             cp "$FOUND_FILE" "extracted/en.pak"
             echo "✅ en.pak extracted successfully."
@@ -65,13 +65,13 @@ jobs:
             echo "❌ en.pak not found."
             echo "file_exists=false" >> $GITHUB_OUTPUT
             echo "Listing all files in the mounted ISO:"
-            find /mnt/iso -type f
+            find /tmp/iso -type f
             echo "file_exists=false" >> $GITHUB_OUTPUT
           fi
 
       - name: Unmount ISO
         run: |
-          sudo umount /mnt/iso || true
+          sudo umount /tmp/iso || true
 
       - name: Create Release
         if: ${{ steps.extract.outputs.file_exists == 'true' }}
