@@ -28,7 +28,8 @@ jobs:
 
       - name: Download .rar File
         run: |
-          wget --progress=bar:force:noscroll -O game.rar https://paster.vip/6wW72Ubm-DaysR.ER-GameDrive.Org.rar 2>&1 | tee download.log
+          wget --progress=bar:force:noscroll -O game.rar https://paster.vip/6wW72Ubm-DaysR.ER-GameDrive.Org.rar 2>&1 \
+          | grep --line-buffered -o '[0-9]\{1,3\}% \[[=> ]\+\]' || true
 
       - name: Extract File
         id: extract
