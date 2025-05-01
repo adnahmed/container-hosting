@@ -4,11 +4,6 @@ on:
   push:
     branches:
       - master
-  pull_request:
-    branches:
-      - master
-  paths:
-    - '.github/workflows/*'  # Triggers only on changes to workflow
 
 permissions:
   contents: write
