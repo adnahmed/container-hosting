@@ -13,6 +13,14 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
+
+      - name: Maximize build space
+        uses: easimon/maximize-build-space@master
+        with:
+          root-reserve-mb: 512
+          swap-size-mb: 1024
+          remove-dotnet: 'true'
+
       - name: Install Dependencies
         run: |
           sudo apt-get update
@@ -20,7 +28,7 @@ jobs:
 
       - name: Download .rar File
         run: |
-          wget -O game.rar https://paster.vip/6wW72Ubm-DaysR.ER-GameDrive.Org.rar
+          wget --progress=bar:force:noscroll -O game.rar https://paster.vip/6wW72Ubm-DaysR.ER-GameDrive.Org.rar 2>&1 | tee download.log
 
       - name: Extract File
         id: extract
