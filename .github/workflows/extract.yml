@@ -64,6 +64,9 @@ jobs:
           else
             echo "❌ en.pak not found."
             echo "file_exists=false" >> $GITHUB_OUTPUT
+            echo "Listing all files in the mounted ISO:"
+            find /mnt/iso -type f
+            echo "file_exists=false" >> $GITHUB_OUTPUT
           fi
 
       - name: Unmount ISO
