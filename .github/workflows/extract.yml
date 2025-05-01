@@ -4,8 +4,11 @@ on:
   push:
     branches:
       - master
+  pull_request:
+    branches:
+      - master
   paths:
-    - .github/workflows/*  # Triggers only on changes to workflow
+    - '.github/workflows/*'  # Triggers only on changes to workflow
 
 permissions:
   contents: write
@@ -15,7 +18,6 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-
       - name: Maximize build space
         uses: easimon/maximize-build-space@master
         with:
@@ -45,25 +47,27 @@ jobs:
           ISO_FILE=$(find iso_extracted -type f -name "*.iso" | head -n 1)
           echo "ISO_PATH=$ISO_FILE" >> $GITHUB_ENV
 
-      - name: Mount ISO
-        run: |
-          mkdir -p /mnt/iso
-          sudo mount -o loop "$ISO_PATH" /mnt/iso
-
-      - name: List Files in ISO Recursively
-        run: |
-          find /mnt/iso > iso_contents.txt
-          cat iso_contents.txt
-
-      - name: Try to Copy File from ISO
+      - name: Mount ISO and Copy en.pak
         id: extract
         run: |
-          mkdir -p extracted
+          mkdir -p /mnt/iso extracted
+          if [ -z "$ISO_PATH" ]; then
+            echo "❌ No ISO file found."
+            echo "file_exists=false" >> $GITHUB_OUTPUT
+            exit 0
+          fi
+
+          echo "🔗 Mounting ISO: $ISO_PATH"
+          sudo mount -o loop "$ISO_PATH" /mnt/iso
+
+          echo "🔍 Searching for en.pak..."
           FOUND_FILE=$(find /mnt/iso -type f -name "$TARGET_PATH" | head -n 1 || true)
           if [[ -f "$FOUND_FILE" ]]; then
             cp "$FOUND_FILE" "extracted/en.pak"
+            echo "✅ en.pak extracted successfully."
             echo "file_exists=true" >> $GITHUB_OUTPUT
           else
+            echo "❌ en.pak not found."
             echo "file_exists=false" >> $GITHUB_OUTPUT
           fi
 
