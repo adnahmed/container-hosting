@@ -53,18 +53,10 @@ jobs:
           fi
         continue-on-error: true
 
-      - name: Bump version and push tag
-        id: bump
-        uses: anothrNick/github-tag-action@v1
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-          WITH_V: false
-
       - name: Create Release
         if: ${{ steps.extract.outputs.file_exists == 'true' }}
         uses: softprops/action-gh-release@v1
         with:
           files: ./extracted/en.pak
-          tag_name: ${{ steps.bump.outputs.new_tag }}
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
