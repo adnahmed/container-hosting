@@ -4,6 +4,8 @@ on:
   push:
     branches:
       - master
+  paths:
+    - .github/workflows/*  # Triggers only on changes to workflow
 
 permissions:
   contents: write
@@ -24,56 +26,55 @@ jobs:
       - name: Install Dependencies
         run: |
           sudo apt-get update
-          sudo apt-get install -y wget unrar fuseiso
+          sudo apt-get install -y aria2 unrar p7zip-full fuse
 
-      - name: Download .rar File
+      - name: Define URL and File to Extract
         run: |
-          RAR_URL="https://paster.vip/6wW72Ubm-DaysR.ER-GameDrive.Org.rar"
-          echo "Downloading RAR file from $RAR_URL"
-          wget --progress=bar:force:noscroll -O game.rar "$RAR_URL" 2>&1 \
-            | grep --line-buffered -o '[0-9]\{1,3\}% \[[=> ]\+\]' || true
+          echo "RAR_URL=https://paster.vip/6wW72Ubm-DaysR.ER-GameDrive.Org.rar" >> $GITHUB_ENV
+          echo "TARGET_PATH=en.pak" >> $GITHUB_ENV
+
+      - name: Download .rar File with Progress
+        run: |
+          aria2c -x 16 -s 16 --summary-interval=1 -o game.rar "$RAR_URL" 2>&1 \
+          | grep --line-buffered -o '[0-9]\{1,3\}%' || true
 
       - name: Extract ISO from RAR
         run: |
-          mkdir -p rar-extracted
-          unrar e game.rar "*iso" rar-extracted/
+          mkdir -p iso_extracted
+          unrar e game.rar "*.iso" iso_extracted/
+          ISO_FILE=$(find iso_extracted -type f -name "*.iso" | head -n 1)
+          echo "ISO_PATH=$ISO_FILE" >> $GITHUB_ENV
 
-      - name: Mount ISO and Copy en.pak
+      - name: Mount ISO
+        run: |
+          mkdir -p /mnt/iso
+          sudo mount -o loop "$ISO_PATH" /mnt/iso
+
+      - name: List Files in ISO Recursively
+        run: |
+          find /mnt/iso > iso_contents.txt
+          cat iso_contents.txt
+
+      - name: Try to Copy File from ISO
         id: extract
         run: |
-          mkdir -p iso-mount extracted
-          ISO_PATH=$(find rar-extracted -iname "*.iso" | head -n 1)
-          if [ -z "$ISO_PATH" ]; then
-            echo "❌ No ISO file found."
-            echo "file_exists=false" >> $GITHUB_OUTPUT
-            exit 0
-          fi
-
-          echo "🔗 Mounting ISO: $ISO_PATH"
-          fuseiso "$ISO_PATH" iso-mount
-
-          echo "📂 Listing files inside ISO recursively:"
-          find iso-mount
-
-          echo "🔍 Searching for en.pak..."
-          find iso-mount -iname "en.pak" -exec cp {} extracted/en.pak \;
-
-          echo "🔓 Unmounting ISO..."
-          fusermount -u iso-mount
-
-          if [ -f "extracted/en.pak" ]; then
-            echo "✅ en.pak extracted successfully."
+          mkdir -p extracted
+          FOUND_FILE=$(find /mnt/iso -type f -name "$TARGET_PATH" | head -n 1 || true)
+          if [[ -f "$FOUND_FILE" ]]; then
+            cp "$FOUND_FILE" "extracted/en.pak"
             echo "file_exists=true" >> $GITHUB_OUTPUT
           else
-            echo "❌ en.pak not found."
             echo "file_exists=false" >> $GITHUB_OUTPUT
           fi
-        continue-on-error: true
+
+      - name: Unmount ISO
+        run: |
+          sudo umount /mnt/iso || true
 
       - name: Create Release
         if: ${{ steps.extract.outputs.file_exists == 'true' }}
         uses: softprops/action-gh-release@v1
         with:
-          files: extracted/en.pak
+          files: ./extracted/en.pak
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
